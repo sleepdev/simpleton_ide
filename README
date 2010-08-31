@@ -1,0 +1,12 @@
+Simpleton IDE is a development environment for people who lack the ability to remember thousands of secret key combos or where in 3 nested menus the simplest of functionality is hidden. 
+
+Features
+   Generic Text Editor with search and replace
+   *Context Zoom
+
+Context Zoom is a similar idea to code folding. The two are essentially the same, reverse what gets hidden.
+
+Code Folding -> Selected Code appears/disappears, surrounding code remains
+Context Zoom -> Hidden code appears, surrounding context disappears
+
+The benefit and crux of context zoom being that you can only do one thing at a time; thus, it is an IDE for non-multitasking simpletons. Context is determined by indentation only, and thus is usable for editing most languages.
