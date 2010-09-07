@@ -49,6 +49,20 @@ class MenuBar:
             self.expand_menu( submenu, entry[1] )
             parent.append( sublabel )
 
+
+
+class Toolbar:
+   def __init__( self, parent ):
+      self.parent = parent
+      self.toolbar = gtk.Toolbar()
+
+      go_up = gtk.Button()
+      go_up.set_relief( gtk.RELIEF_NONE )
+      go_up.set_focus_on_click( False ); 
+      go_up.set_image( gtk.image_new_from_icon_name("stock_up", 5) )
+      self.toolbar.append_widget( go_up, "Open the parent context", None ) 
+
+      self.parent.pack_start( self.toolbar, expand=False )
       
 
 class Notebook:
@@ -78,7 +92,12 @@ class Notebook:
       tab_hbox = gtk.HBox( spacing=7 )
       tab_hbox.add( gtk.image_new_from_icon_name("txt", 2) ) 
       tab_hbox.add( gtk.Label(label_text) )
-      tab_hbox.add( gtk.image_new_from_icon_name("stock_close", 1) )      
+
+      x_button = gtk.Button()
+      x_button.set_relief( gtk.RELIEF_NONE )
+      x_button.set_focus_on_click( False ); 
+      x_button.set_image( gtk.image_new_from_icon_name("cancel", 1) )
+      tab_hbox.add( x_button )      
       tab_hbox.show_all()
       self.notebook.append_page(sw,tab_hbox)
 
@@ -103,10 +122,11 @@ class MainWindow:
       self.vbox = gtk.VBox()
       self.window.add( self.vbox )
       MenuBar( self.vbox )
+      Toolbar( self.vbox )
       Notebook( self.vbox )
       StatusBar( self.vbox )
-      
       self.window.show_all()
+      
 
 
 
