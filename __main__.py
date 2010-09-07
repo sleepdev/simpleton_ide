@@ -3,7 +3,6 @@
 import gtk
 
 
-
 class MenuBar:
    def __init__( self, parent ):
       self.parent = parent
@@ -62,16 +61,26 @@ class Notebook:
       self.append_page("content 2","page 2")
 
       self.parent.pack_start( self.notebook, expand=True )
-      
 
    def append_page( self, content_text, label_text ):
-      frame = gtk.Frame()
-      hbox = gtk.HBox( spacing=7 )
-      hbox.add( gtk.image_new_from_icon_name("txt", 2) ) 
-      hbox.add( gtk.Label(label_text) )
-      hbox.add( gtk.image_new_from_icon_name("stock_close", 1) )      
-      hbox.show_all()
-      self.notebook.append_page(frame,hbox)
+
+      #scrollable textbox
+      textbox = gtk.TextView()
+      textbox.get_buffer().set_text( content_text )
+      textframe = gtk.Frame()           
+      textframe.set_shadow_type( gtk.SHADOW_ETCHED_IN )
+      textframe.add( textbox )
+      sw = gtk.ScrolledWindow()
+      sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+      sw.add_with_viewport(textframe)
+      
+      #notebook tab
+      tab_hbox = gtk.HBox( spacing=7 )
+      tab_hbox.add( gtk.image_new_from_icon_name("txt", 2) ) 
+      tab_hbox.add( gtk.Label(label_text) )
+      tab_hbox.add( gtk.image_new_from_icon_name("stock_close", 1) )      
+      tab_hbox.show_all()
+      self.notebook.append_page(sw,tab_hbox)
 
 
 
@@ -80,7 +89,7 @@ class StatusBar:
       self.parent = parent
       self.statusbar = gtk.Statusbar()   
       self.parent.pack_start( self.statusbar, expand=False )
-
+   
 
 
 class MainWindow:
