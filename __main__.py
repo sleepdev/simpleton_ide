@@ -77,45 +77,53 @@ class Menubar:
 class Toolbar:
    def __init__( self ):
       self._gtk = gtk.Toolbar()
-
-      go_up = gtk.Button()
-      go_up.set_relief( gtk.RELIEF_NONE )
-      go_up.set_focus_on_click( False ); 
-      go_up.set_image( gtk.image_new_from_icon_name("stock_up", 5) )
-      self._gtk.append_widget( go_up, "Open the parent context", None ) 
+      go_up = Button("stock_up", 5)
+      self._gtk.append_widget( go_up._gtk, "Open the parent context", None ) 
       
 
 class Notebook:
    def __init__( self ):
       self._gtk = gtk.Notebook()   
-      self.append_page("content 1","page 1")
-      self.append_page("content 2","page 2")
-      
-   def append_page( self, content_text, label_text ):
+      self.append( NotebookPage("content 1","page 1") )
+      self.append( NotebookPage("content 2","page 2") )
 
-      #scrollable textbox
+   def append( self, page ):
+      page.x_button.bind( lambda e,d: self.remove(page) )
+      self._gtk.append_page( page._gtk, page._gtk_tab )
+
+   def remove( self, page ):
+      pagenum = self._gtk.page_num( page._gtk )
+      self._gtk.remove_page(pagenum)
+      
+
+class NotebookPage:
+   def __init__( self, content_text, label_text ):
+      self._gtk_tab = gtk.HBox( spacing=7 )
+      self._gtk_tab.add( gtk.image_new_from_icon_name("txt", 2) )
+      self._gtk_tab.add( gtk.Label(label_text) )
+      self.x_button = Button("cancel",1)
+      self._gtk_tab.add( self.x_button._gtk )
+      self._gtk_tab.show_all()
+
       textbox = gtk.TextView()
       textbox.get_buffer().set_text( content_text )
       textframe = gtk.Frame()           
       textframe.set_shadow_type( gtk.SHADOW_ETCHED_IN )
       textframe.add( textbox )
-      sw = gtk.ScrolledWindow()
-      sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-      sw.add_with_viewport(textframe)
-      
-      #notebook tab
-      tab_hbox = gtk.HBox( spacing=7 )
-      tab_hbox.add( gtk.image_new_from_icon_name("txt", 2) ) 
-      tab_hbox.add( gtk.Label(label_text) )
+      self._gtk = gtk.ScrolledWindow()
+      self._gtk.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+      self._gtk.add_with_viewport(textframe)
 
-      x_button = gtk.Button()
-      x_button.set_relief( gtk.RELIEF_NONE )
-      x_button.set_focus_on_click( False ); 
-      x_button.set_image( gtk.image_new_from_icon_name("cancel", 1) )
-      tab_hbox.add( x_button )      
-      tab_hbox.show_all()
-      self._gtk.append_page(sw,tab_hbox)
 
+class Button:
+   def __init__( self, icon_name, icon_size ):
+      self._gtk = gtk.Button()
+      self._gtk.set_relief( gtk.RELIEF_NONE )
+      self._gtk.set_focus_on_click( False )
+      self._gtk.set_image( gtk.image_new_from_icon_name( icon_name, icon_size ) )
+      self._gtk.show_all()
+   def bind( self, event ):
+      self._gtk.connect('button_release_event', event)
 
 
 class Statusbar:
