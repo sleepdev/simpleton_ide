@@ -1,16 +1,23 @@
 #!/usr/bin/env python
 
 import gtk
-
+import os.path
+import sys
 
 
 def main():
-   global window
-   window = Window()
+   global window, notebook
+   window = Window(); notebook = Notebook()
    window.add( Menubar(),     expand=False   )
    window.add( Toolbar(),     expand=False   )
-   window.add( Notebook(),    expand=True    )
+   window.add( notebook,      expand=True    )
    window.add( Statusbar(),   expand=False   )
+
+   if len(sys.argv)==1: 
+      notebook.new()
+   else:
+      for loc in sys.argv[1:]:
+         notebook.new( loc )
     
 
 class Window:
@@ -34,7 +41,7 @@ class Menubar:
       self._gtk = gtk.MenuBar()
       menu_structure = [
          ("File", [
-            ["New"], #[ord("N"),gtk.gdk.CONTROL_MASK]],
+            ["New", lambda *_: notebook.new()], #[ord("N"),gtk.gdk.CONTROL_MASK]],
             ["Open..."], #[ord("O"),gtk.gdk.CONTROL_MASK]],
             [],
             ["Save"],
@@ -84,23 +91,43 @@ class Toolbar:
 class Notebook:
    def __init__( self ):
       self._gtk = gtk.Notebook()   
-      self.append( NotebookPage("content 1","page 1") )
-      self.append( NotebookPage("content 2","page 2") )
-
-   def append( self, page ):
-      page.x_button.bind( lambda e,d: self.remove(page) )
-      self._gtk.append_page( page._gtk, page._gtk_tab )
+      self.pages = set()
 
    def remove( self, page ):
       pagenum = self._gtk.page_num( page._gtk )
       self._gtk.remove_page(pagenum)
+      self.pages.remove(page)
+
+   def new( self, location=None ):
+      def exists(loc): return\
+         os.path.exists(loc) or\
+         any( p.location==os.path.abspath(loc) for p in self.pages ) 
+
+      if not location:
+         i = 1
+         while exists("Unsaved Document %s"%i):
+            i = i + 1
+         location = "Unsaved Document %s"%i
+
+      page = NotebookPage( location )
+      page.x_button.bind( lambda *_: self.remove(page) )
+      self._gtk.append_page( page._gtk, page._gtk_tab )
+      self.pages.add( page )
+      self._gtk.show_all()
       
 
 class NotebookPage:
-   def __init__( self, content_text, label_text ):
+   def __init__( self, location ):
+      self.location = os.path.abspath(location)
+      label_text = os.path.split(location)[1]
+      if os.path.isfile(location):
+         content_text = file(location).read()
+      else:
+         content_text = ""
+
       self._gtk_tab = gtk.HBox( spacing=7 )
       self._gtk_tab.add( gtk.image_new_from_icon_name("txt", 2) )
-      self._gtk_tab.add( gtk.Label(label_text) )
+      self._gtk_tab.add( gtk.Label( label_text ) )
       self.x_button = Button("cancel",1)
       self._gtk_tab.add( self.x_button._gtk )
       self._gtk_tab.show_all()
