@@ -42,7 +42,7 @@ class Menubar:
       menu_structure = [
          ("File", [
             ["New", lambda *_: notebook.new()], #[ord("N"),gtk.gdk.CONTROL_MASK]],
-            ["Open..."], #[ord("O"),gtk.gdk.CONTROL_MASK]],
+            ["Open...", lambda *_: notebook.open() ], #[ord("O"),gtk.gdk.CONTROL_MASK]],
             [],
             ["Save"],
             ["Save As"],
@@ -114,6 +114,22 @@ class Notebook:
       self._gtk.append_page( page._gtk, page._gtk_tab )
       self.pages.add( page )
       self._gtk.show_all()
+      pagenum = self._gtk.page_num( page._gtk )
+      self._gtk.set_current_page( pagenum )
+
+   def open( self ):
+      chooser = gtk.FileChooserDialog(title="Open a file",action=gtk.FILE_CHOOSER_ACTION_OPEN, 
+         buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+      chooser.set_default_response(gtk.RESPONSE_OK)
+      filter = gtk.FileFilter()
+      filter.set_name("Text Files")
+      filter.add_mime_type("text/data")
+      filter.add_pattern("*.*")
+      chooser.add_filter(filter)
+      response = chooser.run()
+      if response == gtk.RESPONSE_OK:
+         notebook.new( chooser.get_filename() )
+      chooser.destroy()
       
 
 class NotebookPage:
