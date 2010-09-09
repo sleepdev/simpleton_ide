@@ -2,6 +2,7 @@
 
 import gtk
 import gtksourceview2
+from languages import guess_lang
 import pango
 import os.path
 import sys
@@ -26,7 +27,7 @@ def main():
 class Window:
    def __init__( self ):
       self._gtk = gtk.Window( gtk.WINDOW_TOPLEVEL )
-      self._gtk.set_title("TODO set correct title - Simpleton IDE")
+      self._gtk.set_title("Simpleton IDE")
       self._gtk.set_default_size(1280,949)
       self._gtk.connect('destroy', gtk.main_quit)
 
@@ -164,6 +165,8 @@ class Notebook:
 class NotebookPage:
    def __init__( self, loc ):
       self._gtk_label = gtk.Label("")
+      self._text_buffer = gtksourceview2.Buffer()
+      self._text_buffer.set_highlight_syntax(True)
       self.set_location(loc)
 
       label_text = os.path.split(self.location)[1]
@@ -180,11 +183,7 @@ class NotebookPage:
       self._gtk_tab.add( self.x_button._gtk )
       self._gtk_tab.show_all()
 
-      self._lang_manager = gtksourceview2.LanguageManager()
-      self._lang = self._lang_manager.get_language("python")
-      self._text_buffer = gtksourceview2.Buffer()
-      self._text_buffer.set_highlight_syntax(True)
-      self._text_buffer.set_language(self._lang)
+      
 
       self._text = gtksourceview2.View(self._text_buffer)
       self._text.set_show_line_numbers(True)
@@ -209,9 +208,8 @@ class NotebookPage:
    def set_location(self, value):
       self.location = os.path.abspath(value)
       self._gtk_label.set_text( os.path.split(self.location)[1] )
-
-   def guess_lang( self ): 
-      filetype = self.location.split('.')[-1]
+      self._text_buffer.set_language( guess_lang(self.location) )
+      window._gtk.set_title("{1} ({0}) - Simpleton IDE".format(*os.path.split(self.location)) )
       
           
 
