@@ -44,8 +44,8 @@ class Menubar:
             ["New", lambda *_: notebook.new()], #[ord("N"),gtk.gdk.CONTROL_MASK]],
             ["Open...", lambda *_: notebook.open() ], #[ord("O"),gtk.gdk.CONTROL_MASK]],
             [],
-            ["Save"],
-            ["Save As"],
+            ["Save", lambda *_: notebook.save()],
+            ["Save As", lambda *_:notebook.save_as()],
             ["Revert"],
             [],
             ["1. Most Recent"],
@@ -91,17 +91,22 @@ class Toolbar:
 class Notebook:
    def __init__( self ):
       self._gtk = gtk.Notebook()   
-      self.pages = set()
+      self.pages = {}
+
+   def current_page( self ):
+      pagenum = self._gtk.get_current_page()
+      gtk_page = self._gtk.get_nth_page(pagenum)
+      return self.pages[gtk_page]
 
    def remove( self, page ):
       pagenum = self._gtk.page_num( page._gtk )
       self._gtk.remove_page(pagenum)
-      self.pages.remove(page)
+      del self.pages[page._gtk]
 
    def new( self, location=None ):
       def exists(loc): return\
          os.path.exists(loc) or\
-         any( p.location==os.path.abspath(loc) for p in self.pages ) 
+         any( p.location==os.path.abspath(loc) for p in self.pages.values() ) 
 
       if not location:
          i = 1
@@ -112,7 +117,7 @@ class Notebook:
       page = NotebookPage( location )
       page.x_button.bind( lambda *_: self.remove(page) )
       self._gtk.append_page( page._gtk, page._gtk_tab )
-      self.pages.add( page )
+      self.pages[page._gtk] = page
       self._gtk.show_all()
       pagenum = self._gtk.page_num( page._gtk )
       self._gtk.set_current_page( pagenum )
@@ -124,38 +129,70 @@ class Notebook:
       filter = gtk.FileFilter()
       filter.set_name("Text Files")
       filter.add_mime_type("text/data")
-      filter.add_pattern("*.*")
+      filter.add_pattern("*")
       chooser.add_filter(filter)
       response = chooser.run()
       if response == gtk.RESPONSE_OK:
          notebook.new( chooser.get_filename() )
       chooser.destroy()
+
+   def save( self ):
+      page = self.current_page()
+      file = open(page.location, "w")
+      file.write(page.text())
+      file.close()
+
+   def save_as( self ):
+      chooser = gtk.FileChooserDialog(title="Save file",action=gtk.FILE_CHOOSER_ACTION_SAVE, buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
+      chooser.set_default_response(gtk.RESPONSE_OK)
+      filter = gtk.FileFilter()
+      filter.set_name("Text Files")
+      filter.add_mime_type("text/data")
+      filter.add_pattern("*")
+      chooser.add_filter(filter)
+      response = chooser.run()
+      if response == gtk.RESPONSE_OK:
+         self.current_page().set_location( chooser.get_filename() )
+         self.save()
+      chooser.destroy()
+      
       
 
 class NotebookPage:
-   def __init__( self, location ):
-      self.location = os.path.abspath(location)
-      label_text = os.path.split(location)[1]
-      if os.path.isfile(location):
-         content_text = file(location).read()
+   def __init__( self, loc ):
+      self._gtk_label = gtk.Label("")
+      self.set_location(loc)
+
+      label_text = os.path.split(self.location)[1]
+      if os.path.isfile(self.location):
+         content_text = file(self.location).read()
       else:
          content_text = ""
 
       self._gtk_tab = gtk.HBox( spacing=7 )
       self._gtk_tab.add( gtk.image_new_from_icon_name("txt", 2) )
-      self._gtk_tab.add( gtk.Label( label_text ) )
+      
+      self._gtk_tab.add( self._gtk_label )
       self.x_button = Button("cancel",1)
       self._gtk_tab.add( self.x_button._gtk )
       self._gtk_tab.show_all()
 
-      textbox = gtk.TextView()
-      textbox.get_buffer().set_text( content_text )
+      self._gtk_textbox = gtk.TextView()
+      self._gtk_textbox.get_buffer().set_text( content_text )
       textframe = gtk.Frame()           
       textframe.set_shadow_type( gtk.SHADOW_ETCHED_IN )
-      textframe.add( textbox )
+      textframe.add( self._gtk_textbox )
       self._gtk = gtk.ScrolledWindow()
       self._gtk.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
       self._gtk.add_with_viewport(textframe)
+
+   def text( self ):
+      textbuffer = self._gtk_textbox.get_buffer()
+      return textbuffer.get_text(textbuffer.get_start_iter() , textbuffer.get_end_iter())
+
+   def set_location(self, value):
+      self.location = os.path.abspath(value)
+      self._gtk_label.set_text( os.path.split(self.location)[1] )
 
 
 class Button:
