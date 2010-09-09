@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
 import gtk
+import gtksourceview2
+import pango
 import os.path
 import sys
+
 
 
 def main():
@@ -177,13 +180,26 @@ class NotebookPage:
       self._gtk_tab.add( self.x_button._gtk )
       self._gtk_tab.show_all()
 
-      self._gtk_textbox = gtk.TextView()
-      self._gtk_textbox.get_buffer().set_text( content_text )
+      self._lang_manager = gtksourceview2.LanguageManager()
+      self._lang = self._lang_manager.get_language("python")
+      self._text_buffer = gtksourceview2.Buffer()
+      self._text_buffer.set_highlight_syntax(True)
+      self._text_buffer.set_language(self._lang)
+
+      self._text = gtksourceview2.View(self._text_buffer)
+      self._text.set_show_line_numbers(True)
+      self._text.set_tab_width(4)
+      self._text.set_auto_indent(True)
+      self._text.set_insert_spaces_instead_of_tabs(True)
+      self._text.get_buffer().set_text(content_text)       
+      self._text.modify_font(pango.FontDescription('monospace'))
+      
       textframe = gtk.Frame()           
-      textframe.set_shadow_type( gtk.SHADOW_ETCHED_IN )
-      textframe.add( self._gtk_textbox )
+      textframe.set_shadow_type( gtk.SHADOW_NONE )
+      textframe.add( self._text )
       self._gtk = gtk.ScrolledWindow()
       self._gtk.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+      #self._gtk.add( self._text )
       self._gtk.add_with_viewport(textframe)
 
    def text( self ):
@@ -193,6 +209,11 @@ class NotebookPage:
    def set_location(self, value):
       self.location = os.path.abspath(value)
       self._gtk_label.set_text( os.path.split(self.location)[1] )
+
+   def guess_lang( self ): 
+      filetype = self.location.split('.')[-1]
+      
+          
 
 
 class Button:
