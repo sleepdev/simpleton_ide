@@ -6,6 +6,7 @@ import pango
 import os.path
 import sys
 import mimetypes
+from threading import Timer
 
 
 lang_manager = gtksourceview2.LanguageManager()
@@ -108,10 +109,12 @@ class Window:
       self._vbox = gtk.VBox()
       self._gtk.add( self._vbox )
       self._gtk.show_all()
+     
 
    def add( self, widget, expand=True ):
       self._vbox.pack_start( widget._gtk, expand )
       widget._gtk.show_all()
+
 
 
 class Menubar:
@@ -170,11 +173,15 @@ class Notebook:
    def __init__( self ):
       self._gtk = gtk.Notebook()   
       self.pages = {}
+      window._gtk.connect('key_release_event',self.update_label)
+      
+   def update_label( self, *_):
+      self.current_page() and self.current_page().update_label()
 
    def current_page( self ):
       pagenum = self._gtk.get_current_page()
       gtk_page = self._gtk.get_nth_page(pagenum)
-      return self.pages[gtk_page]
+      return gtk_page and self.pages[gtk_page]
 
    def remove( self, page ):
       pagenum = self._gtk.page_num( page._gtk )
@@ -219,6 +226,8 @@ class Notebook:
       file = open(page.location, "w")
       file.write(page.text())
       file.close()
+      page._text_buffer.set_modified(False)
+      self.update_label()
 
    def save_as( self ):
       chooser = gtk.FileChooserDialog(title="Save file",action=gtk.FILE_CHOOSER_ACTION_SAVE, buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
@@ -239,16 +248,6 @@ class Notebook:
 class NotebookPage:
    def __init__( self, loc ):
       self._gtk_label = gtk.Label("")
-      self._text_buffer = gtksourceview2.Buffer()
-      self._text_buffer.set_highlight_syntax(True)
-      self.set_location(loc)
-
-      label_text = os.path.split(self.location)[1]
-      if os.path.isfile(self.location):
-         content_text = file(self.location).read()
-      else:
-         content_text = ""
-
       self._gtk_tab = gtk.HBox( spacing=7 )
       self._gtk_tab.add( gtk.image_new_from_icon_name("txt", 2) )
       
@@ -257,14 +256,15 @@ class NotebookPage:
       self._gtk_tab.add( self.x_button._gtk )
       self._gtk_tab.show_all()
 
-      
-
+      self._text_buffer = gtksourceview2.Buffer()
+      self._text_buffer.set_highlight_matching_brackets(False)
+      self._text_buffer.set_highlight_syntax(True)
       self._text = gtksourceview2.View(self._text_buffer)
       self._text.set_show_line_numbers(True)
-      self._text.set_tab_width(4)
+      self._text.set_tab_width(3)
       self._text.set_auto_indent(True)
       self._text.set_insert_spaces_instead_of_tabs(True)
-      self._text.get_buffer().set_text(content_text)       
+      
       self._text.modify_font(pango.FontDescription('monospace'))
       
       textframe = gtk.Frame()           
@@ -272,18 +272,31 @@ class NotebookPage:
       textframe.add( self._text )
       self._gtk = gtk.ScrolledWindow()
       self._gtk.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-      #self._gtk.add( self._text )
       self._gtk.add_with_viewport(textframe)
 
+      self.set_location(loc)
+      if os.path.isfile(self.location):
+         content_text = file(self.location).read()
+      else:
+         content_text = ""
+      self._text_buffer.begin_not_undoable_action()
+      self._text_buffer.set_text(content_text)  
+      self._text_buffer.end_not_undoable_action()   
+      self._text_buffer.set_modified(False)
+      
    def text( self ):
-      textbuffer = self._gtk_textbox.get_buffer()
-      return textbuffer.get_text(textbuffer.get_start_iter() , textbuffer.get_end_iter())
+      buff = self._text_buffer
+      return buff.get_text(buff.get_start_iter() , buff.get_end_iter())
 
    def set_location(self, value):
       self.location = os.path.abspath(value)
-      self._gtk_label.set_text( os.path.split(self.location)[1] )
       self._text_buffer.set_language( guess_lang(self.location) )
-      window._gtk.set_title("{1} ({0}) - Simpleton IDE".format(*os.path.split(self.location)) )
+      self.update_label()
+
+   def update_label( self ):
+      modmark = self._text_buffer.get_modified() and '*' or ''
+      self._gtk_label.set_text( modmark + os.path.split(self.location)[1] )
+      window._gtk.set_title( modmark + "{1} ({0}) - Simpleton IDE".format(*os.path.split(self.location)) )
       
           
 
