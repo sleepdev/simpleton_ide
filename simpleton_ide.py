@@ -146,6 +146,9 @@ class Menubar:
             ["Close"],
             ["Quit", gtk.main_quit],
          ]),
+         ("Edit", [
+            ["Find...", lambda *_: notebook.do_search()],
+         ]),
       ]
       self.expand_menu( self._gtk, menu_structure )
 
@@ -257,10 +260,53 @@ class Notebook:
          self.save()
       chooser.destroy()
       
+   def search_callback(self, dialog, response_id):
+      if response_id == -1:
+         dialog.destroy()
+         return
+
+      start, end = dialog.buffer.get_bounds()
+      search_string = start.get_text(end)
+
+      self.search(search_string, forward=True)
+
+   def do_search(self):
+      search_text = gtk.TextView()
+      dialog = gtk.Dialog("Find", window._gtk,
+                         gtk.DIALOG_DESTROY_WITH_PARENT,
+                         ("Close", -1,
+                          "Find", 0 ) )
+      dialog.vbox.pack_end(search_text, True, True, 0)
+      dialog.buffer = search_text.get_buffer()
+      dialog.connect("response", self.search_callback)
+
+      search_text.show()
+      search_text.grab_focus()
+      dialog.show_all()
+      
+   def search(self, str, forward):
+      page = self.current_page()
+      buffer = page._text_buffer
+      start, end = buffer.get_bounds()
+      buffer.remove_tag(page.found_text_tag, start, end)
+
+      iter = buffer.get_start_iter()
+
+      while str:
+         res = iter.forward_search(str, gtk.TEXT_SEARCH_TEXT_ONLY)
+         #res = iter.backward_search(str, gtk.TEXT_SEARCH_TEXT_ONLY)
+         if not res:
+            break
+         match_start, match_end = res
+         buffer.apply_tag(page.found_text_tag, match_start, match_end)
+         iter = match_end
+
+      
       
 
 class NotebookPage:
    def __init__( self, loc ):
+      
       self._gtk_label = gtk.Label("")
       self._gtk_tab = gtk.HBox( spacing=7 )
       self._gtk_tab.add( gtk.image_new_from_icon_name("txt", 2) )
@@ -273,8 +319,9 @@ class NotebookPage:
       self._text_buffer = gtksourceview2.Buffer()
       self._text_buffer.set_highlight_matching_brackets(False)
       self._text_buffer.set_highlight_syntax(True)
+      self.found_text_tag = self._text_buffer.create_tag(background="yellow")
       self._text = gtksourceview2.View(self._text_buffer)
-      self._text.set_show_line_numbers(True)
+      #self._text.set_show_line_numbers(True)
       self._text.set_tab_width(3)
       self._text.set_auto_indent(True)
       self._text.set_insert_spaces_instead_of_tabs(True)
