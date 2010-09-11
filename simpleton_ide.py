@@ -9,6 +9,12 @@ import mimetypes
 from threading import Timer
 
 
+#pygtk LOVES deprecation warnings
+import warnings
+warnings.filterwarnings("ignore")
+
+
+
 lang_manager = gtksourceview2.LanguageManager()
 
 def guess_lang( filename ):
@@ -83,6 +89,8 @@ ext_to_lang = {
 }
 
 
+def icon( icon_name, icon_size ):
+   return gtk.image_new_from_icon_name(icon_name,icon_size)
 
 def main():
    global window, notebook
@@ -165,23 +173,29 @@ class Menubar:
 class Toolbar:
    def __init__( self ):
       self._gtk = gtk.Toolbar()
-      go_up = Button("stock_up", 5)
-      self._gtk.append_widget( go_up._gtk, "Open the parent context", None ) 
+
+      self._gtk.append_item(None, "Open the parent context", None, icon("stock_up", 3) , None)
+      self._gtk.append_item(None, "Create a new document", None, icon("document-new", 3) , lambda *_:notebook.new())
+      self._gtk.append_item("Open", "Open a file", None, icon("document-open", 3) , lambda *_:notebook.open())
+      self._gtk.append_item("Save", "Save the current file", None, icon("document-save", 3) , lambda *_:notebook.save())
+
       
 
 class Notebook:
    def __init__( self ):
       self._gtk = gtk.Notebook()   
       self.pages = {}
-      window._gtk.connect('key_release_event',self.update_label)
+      window._gtk.connect("key_press_event",lambda *_:self.update_label())
+      window._gtk.connect("set-focus",lambda *_:self.update_label())
+
       
-   def update_label( self, *_):
+   def update_label( self ):
       self.current_page() and self.current_page().update_label()
 
    def current_page( self ):
       pagenum = self._gtk.get_current_page()
       gtk_page = self._gtk.get_nth_page(pagenum)
-      return gtk_page and self.pages[gtk_page]
+      return gtk_page and gtk_page in self.pages and self.pages[gtk_page]
 
    def remove( self, page ):
       pagenum = self._gtk.page_num( page._gtk )
@@ -304,10 +318,12 @@ class NotebookPage:
 class Button:
    def __init__( self, icon_name, icon_size ):
       self._gtk = gtk.Button()
+      self._gtk.set_image( gtk.image_new_from_icon_name( icon_name, icon_size ) )
+      #icon = gtk.icon_theme_get_default().load_icon( "stock_up", 5, () )
       self._gtk.set_relief( gtk.RELIEF_NONE )
       self._gtk.set_focus_on_click( False )
-      self._gtk.set_image( gtk.image_new_from_icon_name( icon_name, icon_size ) )
-      self._gtk.show_all()
+      self._gtk.show_all()   
+
    def bind( self, event ):
       self._gtk.connect('button_release_event', event)
 
