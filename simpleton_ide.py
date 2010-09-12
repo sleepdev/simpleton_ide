@@ -3,15 +3,19 @@
 import gtk
 import gtksourceview2
 import pango
+import os
 import os.path
 import sys
 import mimetypes
-from threading import Timer
-
+import socket
+import thread
+import atexit
+import time
 
 #pygtk LOVES deprecation warnings
 import warnings
 warnings.filterwarnings("ignore")
+   
 
 
 
@@ -105,6 +109,45 @@ def main():
    else:
       for loc in sys.argv[1:]:
          notebook.new( loc )
+         
+   #check to make sure that only one instance is running
+   s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+   FILE = "/tmp/simpleton_ide"
+   
+   try: 
+      
+      """
+      "os.fork based ipc -> hangs"
+      s.bind(FILE)
+      s.listen(1)
+      pid = os.fork() 
+      while not pid:
+         conn, addr = s.accept()
+         notebook.new( conn.recv(1024) )
+      atexit.register(lambda: os.path.exists(FILE) and os.remove(FILE))
+      """
+      
+      "thread based ipc"
+      s.bind(FILE)
+      s.listen(1)
+      def ipc():      
+         while True:
+            conn, addr = s.accept()
+            notebook.new( conn.recv(1024) )
+      thread.start_new_thread( ipc, () )      
+      atexit.register(lambda: os.path.exists(FILE) and os.remove(FILE))
+         
+   except socket.error, E:
+      print 'primary, socket.error', E
+      try:
+         for loc in sys.argv[1:]:
+            s.connect( FILE )
+            s.send(loc)
+            s.close()
+      except socket.error, E:
+         print 'secondary, socket.error', E
+         os.path.exists(FILE) and os.remove(FILE)
+      sys.exit(0)
     
 
 class Window:
