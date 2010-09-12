@@ -177,7 +177,6 @@ class Toolbar:
    def __init__( self ):
       self._gtk = gtk.Toolbar()
 
-      self._gtk.append_item(None, "Open the parent context", None, icon("stock_up", 3) , None)
       self._gtk.append_item(None, "Create a new document", None, icon("document-new", 3) , lambda *_:notebook.new())
       self._gtk.append_item("Open", "Open a file", None, icon("document-open", 3) , lambda *_:notebook.open())
       self._gtk.append_item("Save", "Save the current file", None, icon("document-save", 3) , lambda *_:notebook.save())
