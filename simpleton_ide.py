@@ -111,9 +111,8 @@ def main():
          notebook.new( loc )
          
    #check to make sure that only one instance is running
-   s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-   FILE = "/tmp/simpleton_ide"
    
+   FILE = "\0simpleton_ide"   
    try: 
       
       """
@@ -128,6 +127,7 @@ def main():
       """
       
       "thread based ipc"
+      s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
       s.bind(FILE)
       s.listen(1)
       def ipc():      
@@ -135,18 +135,17 @@ def main():
             conn, addr = s.accept()
             notebook.new( conn.recv(1024) )
       thread.start_new_thread( ipc, () )      
-      atexit.register(lambda: os.path.exists(FILE) and os.remove(FILE))
          
    except socket.error, E:
       print 'primary, socket.error', E
       try:
          for loc in sys.argv[1:]:
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.connect( FILE )
             s.send(loc)
             s.close()
       except socket.error, E:
          print 'secondary, socket.error', E
-         os.path.exists(FILE) and os.remove(FILE)
       sys.exit(0)
     
 
