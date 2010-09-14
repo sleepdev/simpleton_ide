@@ -117,7 +117,7 @@ def main():
       s.bind(FILE)
       def ipc():      
          while True:
-            notebook.new( s.recvfrom(1024)[0] )
+            notebook.new( s.recvfrom(1024)[0] ) 
       thread.start_new_thread( ipc, () )    
    except socket.error, E:
       print 'primary, socket.error', E
@@ -414,7 +414,9 @@ class Statusbar:
 if __name__ == "__main__":
    main()
    gtk.gdk.threads_init()
+   gtk.gdk.threads_enter()
    gtk.main()
+   gtk.gdk.threads_exit()
 
 
 
