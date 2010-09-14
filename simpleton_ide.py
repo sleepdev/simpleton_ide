@@ -111,38 +111,20 @@ def main():
          notebook.new( loc )
          
    #check to make sure that only one instance is running
-   
    FILE = "\0simpleton_ide"   
-   try: 
-      
-      """
-      "os.fork based ipc -> hangs"
+   try:     
+      s = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
       s.bind(FILE)
-      s.listen(1)
-      pid = os.fork() 
-      while not pid:
-         conn, addr = s.accept()
-         notebook.new( conn.recv(1024) )
-      atexit.register(lambda: os.path.exists(FILE) and os.remove(FILE))
-      """
-      
-      "thread based ipc"
-      s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-      s.bind(FILE)
-      s.listen(1)
       def ipc():      
          while True:
-            conn, addr = s.accept()
-            notebook.new( conn.recv(1024) )
-      thread.start_new_thread( ipc, () )      
-         
+            notebook.new( s.recvfrom(1024)[0] )
+      thread.start_new_thread( ipc, () )    
    except socket.error, E:
       print 'primary, socket.error', E
       try:
          for loc in sys.argv[1:]:
-            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            s.connect( FILE )
-            s.send(loc)
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+            s.sendto(loc,FILE)
             s.close()
       except socket.error, E:
          print 'secondary, socket.error', E
