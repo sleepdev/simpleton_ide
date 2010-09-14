@@ -413,10 +413,8 @@ class Statusbar:
 
 if __name__ == "__main__":
    main()
-   gtk.gdk.threads_enter()
+   gtk.gdk.threads_init()
    gtk.main()
-   gtk.gdk.threads_leave()
-
 
 
 
