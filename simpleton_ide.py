@@ -238,12 +238,18 @@ class Notebook:
          while exists("Unsaved Document %s"%i):
             i = i + 1
          location = "Unsaved Document %s"%i
-
-      page = NotebookPage( location )
-      page.x_button.bind( lambda *_: self.remove(page) )
-      self._gtk.append_page( page._gtk, page._gtk_tab )
-      self.pages[page._gtk] = page
-      self._gtk.show_all()
+         
+      page = None
+      for p in self.pages.values():
+         if p.location==os.path.abspath(location):
+            page = p
+      if not page:
+         page = NotebookPage( location )
+         page.x_button.bind( lambda *_: self.remove(page) )
+         self._gtk.append_page( page._gtk, page._gtk_tab )
+         self.pages[page._gtk] = page
+         self._gtk.show_all()
+         
       pagenum = self._gtk.page_num( page._gtk )
       self._gtk.set_current_page( pagenum )
 
@@ -378,7 +384,7 @@ class NotebookPage:
       self.update_label()
 
    def update_label( self ):
-      modmark = self._text_buffer.get_modified() and '*' or ''
+      modmark = (not os.path.exists(self.location) or self._text_buffer.get_modified()) and '*' or ''
       self._gtk_label.set_text( modmark + os.path.split(self.location)[1] )
       window._gtk.set_title( modmark + "{1} ({0}) - Simpleton IDE".format(*os.path.split(self.location)) )
       
