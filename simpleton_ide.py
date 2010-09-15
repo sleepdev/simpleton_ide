@@ -230,7 +230,14 @@ class Notebook:
    def __init__( self ):
       self._gtk = gtk.Notebook()   
       self.pages = {}
-      eventloop.append( lambda *_:self.current_page() and self.current_page().update_label() )      
+      eventloop.append( self.update_label )
+      
+   def update_label( self ):
+      page = self.current_page()
+      location = page and page.location or ''  
+      modmark = (not os.path.exists(location) or page._text_buffer.get_modified()) and '*' or ''
+      page._gtk_label.set_text( modmark + os.path.split(location)[1] )
+      window._gtk.set_title( modmark + "{1} ({0}) - Simpleton IDE".format(*os.path.split(location)) )      
 
    def current_page( self ):
       pagenum = self._gtk.get_current_page()
@@ -287,7 +294,6 @@ class Notebook:
       file.write(page.text())
       file.close()
       page._text_buffer.set_modified(False)
-      self.update_label()
 
    def save_as( self ):
       chooser = gtk.FileChooserDialog(title="Save file",action=gtk.FILE_CHOOSER_ACTION_SAVE, buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
@@ -395,14 +401,7 @@ class NotebookPage:
    def set_location(self, value):
       self.location = os.path.abspath(value)
       self._text_buffer.set_language( guess_lang(self.location) )
-      self.update_label()
-
-   def update_label( self ):
-      modmark = (not os.path.exists(self.location) or self._text_buffer.get_modified()) and '*' or ''
-      self._gtk_label.set_text( modmark + os.path.split(self.location)[1] )
-      window._gtk.set_title( modmark + "{1} ({0}) - Simpleton IDE".format(*os.path.split(self.location)) )
       
-          
 
 
 class Button:
