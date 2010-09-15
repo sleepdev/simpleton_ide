@@ -16,6 +16,10 @@ import time
 import warnings
 warnings.filterwarnings("ignore")
    
+   
+   
+   
+
 
 
 
@@ -97,8 +101,10 @@ def icon( icon_name, icon_size ):
    return gtk.image_new_from_icon_name(icon_name,icon_size)
 
 def main():
-   global window, notebook
-   window = Window(); notebook = Notebook()
+   global window, notebook, eventloop, lock
+   lock = thread.allocate_lock()
+   gtk.gdk.threads_enter()
+   eventloop = []; window = Window(); notebook = Notebook(); 
    window.add( Menubar(),     expand=False   )
    window.add( Toolbar(),     expand=False   )
    window.add( notebook,      expand=True    )
@@ -109,6 +115,7 @@ def main():
    else:
       for loc in sys.argv[1:]:
          notebook.new( loc )
+   gtk.gdk.threads_leave()
          
    #check to make sure that only one instance is running
    FILE = "\0simpleton_ide"   
@@ -117,7 +124,10 @@ def main():
       s.bind(FILE)
       def ipc():      
          while True:
-            notebook.new( s.recvfrom(1024)[0] ) 
+            location = s.recvfrom(1024)[0]
+            lock.acquire(); gtk.gdk.threads_enter()
+            notebook.new( location ) 
+            lock.release(); gtk.gdk.threads_leave()
       thread.start_new_thread( ipc, () )    
    except socket.error, E:
       print 'primary, socket.error', E
@@ -129,6 +139,15 @@ def main():
       except socket.error, E:
          print 'secondary, socket.error', E
       sys.exit(0)
+      
+   def eloop():
+      while True:
+         lock.acquire(); gtk.gdk.threads_enter()
+         for handler in eventloop:
+            handler()
+         lock.release(); gtk.gdk.threads_leave()
+         time.sleep(0.1)
+   thread.start_new_thread( eloop, () )
     
 
 class Window:
@@ -211,12 +230,7 @@ class Notebook:
    def __init__( self ):
       self._gtk = gtk.Notebook()   
       self.pages = {}
-      window._gtk.connect("key_press_event",lambda *_:self.update_label())
-      window._gtk.connect("set-focus",lambda *_:self.update_label())
-
-      
-   def update_label( self ):
-      self.current_page() and self.current_page().update_label()
+      eventloop.append( lambda *_:self.current_page() and self.current_page().update_label() )      
 
    def current_page( self ):
       pagenum = self._gtk.get_current_page()
@@ -420,9 +434,7 @@ class Statusbar:
 if __name__ == "__main__":
    main()
    gtk.gdk.threads_init()
-   gtk.gdk.threads_enter()
    gtk.main()
-   gtk.gdk.threads_exit()
 
 
 
