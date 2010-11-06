@@ -29,32 +29,20 @@ Example exception file for blocking:
 
 INSTALLATION:
 
-   Copy and paste this into the command line
-      mkdir simpleton_ide_build
-      cd simpleton_ide_build
-      wget http://github.com/sleepdev/Simpleton-IDE/raw/master/dist/simpleton_ide-0.01.tar.gz
-      tar -xf simpleton_ide-0.01.tar.gz
-      cd simpleton_ide-0.01
-      sudo python setup.py install
-      cd ../..
-      sudo rm -r simpleton_ide_build
-      echo "Done with installation."
+    Download the latest version from 
+        git clone git@github.com:sleepdev/Simpleton-IDE.git
 
-   OR
-
-   Download the latest version from 
-      http://github.com/sleepdev/Simpleton-IDE/raw/master/dist/simpleton_ide-0.01.tar.gz
-
-   Unzip and cd into the new directory before typing
-      sudo python setup.py install
+    Build and install the package
+        cd Simpleton-IDE
+        python setup.py build
+        sudo python setup.py install
       
 
 
-
-   This will install the package on your computer, which can then be run from the command line with just
+    This will install the package on your computer, which can then be run from the command line with just
       simpleton_ide.py
 
-   To open files, supply the filenames as arguments
+    To open files, supply the filenames as arguments
       simpleton_ide.py myfile.js
 
    
